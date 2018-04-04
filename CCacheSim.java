@@ -13,20 +13,18 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EtchedBorder;
 
-
-public class CCacheSim extends JFrame implements ActionListener{
+public class CCacheSim extends JFrame implements ActionListener {
 
 	private JPanel panelTop, panelLeft, panelRight, panelBottom;
 	private JButton execStepBtn, execAllBtn, fileBotton;
 	private JComboBox csBox, bsBox, wayBox, replaceBox, prefetchBox, writeBox, allocBox;
 	private JFileChooser fileChoose;
-	
-	private JLabel labelTop,labelLeft,rightLabel,bottomLabel,fileLabel,fileAddrBtn, stepLabel1, stepLabel2,
-		    csLabel, bsLabel, wayLabel, replaceLabel, prefetchLabel, writeLabel, allocLabel;
+
+	private JLabel labelTop, labelLeft, rightLabel, bottomLabel, fileLabel, fileAddrBtn, stepLabel1, stepLabel2,
+			csLabel, bsLabel, wayLabel, replaceLabel, prefetchLabel, writeLabel, allocLabel;
 	private JLabel results[];
 
-
-    //参数定义
+	//参数定义
 	private String cachesize[] = { "2KB", "8KB", "32KB", "128KB", "512KB", "2MB" };
 	private String blocksize[] = { "16B", "32B", "64B", "128B", "256B" };
 	private String way[] = { "直接映象", "2路", "4路", "8路", "16路", "32路" };
@@ -35,74 +33,80 @@ public class CCacheSim extends JFrame implements ActionListener{
 	private String write[] = { "写回法", "写直达法" };
 	private String alloc[] = { "按写分配", "不按写分配" };
 	private String typename[] = { "读数据", "写数据", "读指令" };
-	private String hitname[] = {"不命中", "命中" };
-	
+	private String hitname[] = { "不命中", "命中" };
+
 	//右侧结果显示
-	private String rightLable[]={"访问总次数：","读指令次数：","读数据次数：","写数据次数："};
-	
+	private String rightLable[] = { "访问总次数：", "读指令次数：", "读数据次数：", "写数据次数：" };
+
 	//打开文件
 	private File file;
-	
+
 	//分别表示左侧几个下拉框所选择的第几项，索引从 0 开始
 	private int csIndex, bsIndex, wayIndex, replaceIndex, prefetchIndex, writeIndex, allocIndex;
-	
+
 	//其它变量定义
 	//...
-	
+	public String CacheSize;
+	public String BlockSize;
+	public String Way;
+	public String Replace;
+	public String Pref;
+
+
+
 	/*
 	 * 构造函数，绘制模拟器面板
 	 */
-	public CCacheSim(){
+	public CCacheSim() {
 		super("Cache Simulator");
 		draw();
 	}
-	
-	
+
 	//响应事件，共有三种事件：
 	//   1. 执行到底事件
 	//   2. 单步执行事件
 	//   3. 文件选择事件
-	public void actionPerformed(ActionEvent e){
-				
+	public void actionPerformed(ActionEvent e) {
+
 		if (e.getSource() == execAllBtn) {
 			simExecAll();
 		}
 		if (e.getSource() == execStepBtn) {
 			simExecStep();
 		}
-		if (e.getSource() == fileBotton){
+		if (e.getSource() == fileBotton) {
 			int fileOver = fileChoose.showOpenDialog(null);
 			if (fileOver == 0) {
-				   String path = fileChoose.getSelectedFile().getAbsolutePath();
-				   fileAddrBtn.setText(path);
-				   file = new File(path);
-				   readFile();
-				   initCache();
+				String path = fileChoose.getSelectedFile().getAbsolutePath();
+				fileAddrBtn.setText(path);
+				file = new File(path);
+				readFile();
+				initCache();
 			}
 		}
 	}
-	
+
 	/*
 	 * 初始化 Cache 模拟器
 	 */
 	public void initCache() {
 
 	}
-	
+
 	/*
 	 * 将指令和数据流从文件中读入
 	 */
 	public void readFile() {
 
 	}
-	
+
 	/*
 	 * 模拟单步执行
 	 */
 	public void simExecStep() {
 
 	}
-	
+
 	/*
 	 * 模拟执行到底
 	 */
@@ -110,18 +114,17 @@ public class CCacheSim extends JFrame implements ActionListener{
 
 	}
 
-	
 	public static void main(String[] args) {
 		new CCacheSim();
 	}
-	
+
 	/**
 	 * 绘制 Cache 模拟器图形化界面
 	 * 无需做修改
 	 */
 	public void draw() {
 		//模拟器绘制面板
-		setLayout(new BorderLayout(5,5));
+		setLayout(new BorderLayout(5, 5));
 		panelTop = new JPanel();
 		panelLeft = new JPanel();
 		panelRight = new JPanel();
@@ -140,11 +143,10 @@ public class CCacheSim extends JFrame implements ActionListener{
 		labelTop.setAlignmentX(CENTER_ALIGNMENT);
 		panelTop.add(labelTop);
 
-		
 		//*****************************左侧面板绘制*****************************************//
 		labelLeft = new JLabel("Cache 参数设置");
 		labelLeft.setPreferredSize(new Dimension(300, 40));
-		
+
 		//cache 大小设置
 		csLabel = new JLabel("总大小");
 		csLabel.setPreferredSize(new Dimension(120, 30));
@@ -155,7 +157,7 @@ public class CCacheSim extends JFrame implements ActionListener{
 				csIndex = csBox.getSelectedIndex();
 			}
 		});
-		
+
 		//cache 块大小设置
 		bsLabel = new JLabel("块大小");
 		bsLabel.setPreferredSize(new Dimension(120, 30));
@@ -166,7 +168,7 @@ public class CCacheSim extends JFrame implements ActionListener{
 				bsIndex = bsBox.getSelectedIndex();
 			}
 		});
-		
+
 		//相连度设置
 		wayLabel = new JLabel("相联度");
 		wayLabel.setPreferredSize(new Dimension(120, 30));
@@ -177,7 +179,7 @@ public class CCacheSim extends JFrame implements ActionListener{
 				wayIndex = wayBox.getSelectedIndex();
 			}
 		});
-		
+
 		//替换策略设置
 		replaceLabel = new JLabel("替换策略");
 		replaceLabel.setPreferredSize(new Dimension(120, 30));
@@ -188,18 +190,18 @@ public class CCacheSim extends JFrame implements ActionListener{
 				replaceIndex = replaceBox.getSelectedIndex();
 			}
 		});
-		
+
 		//欲取策略设置
 		prefetchLabel = new JLabel("预取策略");
 		prefetchLabel.setPreferredSize(new Dimension(120, 30));
 		prefetchBox = new JComboBox(pref);
 		prefetchBox.setPreferredSize(new Dimension(160, 30));
-		prefetchBox.addItemListener(new ItemListener(){
-			public void itemStateChanged(ItemEvent e){
+		prefetchBox.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
 				prefetchIndex = prefetchBox.getSelectedIndex();
 			}
 		});
-		
+
 		//写策略设置
 		writeLabel = new JLabel("写策略");
 		writeLabel.setPreferredSize(new Dimension(120, 30));
@@ -210,7 +212,7 @@ public class CCacheSim extends JFrame implements ActionListener{
 				writeIndex = writeBox.getSelectedIndex();
 			}
 		});
-		
+
 		//调块策略
 		allocLabel = new JLabel("写不命中调块策略");
 		allocLabel.setPreferredSize(new Dimension(120, 30));
@@ -221,17 +223,17 @@ public class CCacheSim extends JFrame implements ActionListener{
 				allocIndex = allocBox.getSelectedIndex();
 			}
 		});
-		
+
 		//选择指令流文件
 		fileLabel = new JLabel("选择指令流文件");
 		fileLabel.setPreferredSize(new Dimension(120, 30));
 		fileAddrBtn = new JLabel();
-		fileAddrBtn.setPreferredSize(new Dimension(210,30));
+		fileAddrBtn.setPreferredSize(new Dimension(210, 30));
 		fileAddrBtn.setBorder(new EtchedBorder(EtchedBorder.RAISED));
 		fileBotton = new JButton("浏览");
-		fileBotton.setPreferredSize(new Dimension(70,30));
+		fileBotton.setPreferredSize(new Dimension(70, 30));
 		fileBotton.addActionListener(this);
-		
+
 		panelLeft.add(labelLeft);
 		panelLeft.add(csLabel);
 		panelLeft.add(csBox);
@@ -250,35 +252,34 @@ public class CCacheSim extends JFrame implements ActionListener{
 		panelLeft.add(fileLabel);
 		panelLeft.add(fileAddrBtn);
 		panelLeft.add(fileBotton);
-		
+
 		//*****************************右侧面板绘制*****************************************//
 		//模拟结果展示区域
 		rightLabel = new JLabel("模拟结果");
 		rightLabel.setPreferredSize(new Dimension(500, 40));
 		results = new JLabel[4];
-		for (int i=0; i<4; i++) {
+		for (int i = 0; i < 4; i++) {
 			results[i] = new JLabel("");
 			results[i].setPreferredSize(new Dimension(500, 40));
 		}
-		
+
 		stepLabel1 = new JLabel();
 		stepLabel1.setVisible(false);
 		stepLabel1.setPreferredSize(new Dimension(500, 40));
 		stepLabel2 = new JLabel();
 		stepLabel2.setVisible(false);
 		stepLabel2.setPreferredSize(new Dimension(500, 40));
-		
+
 		panelRight.add(rightLabel);
-		for (int i=0; i<4; i++) {
+		for (int i = 0; i < 4; i++) {
 			panelRight.add(results[i]);
 		}
-		
+
 		panelRight.add(stepLabel1);
 		panelRight.add(stepLabel2);
 
-
 		//*****************************底部面板绘制*****************************************//
-		
+
 		bottomLabel = new JLabel("执行控制");
 		bottomLabel.setPreferredSize(new Dimension(800, 30));
 		execStepBtn = new JButton("步进");
@@ -287,7 +288,7 @@ public class CCacheSim extends JFrame implements ActionListener{
 		execAllBtn = new JButton("执行到底");
 		execAllBtn.setLocation(300, 30);
 		execAllBtn.addActionListener(this);
-		
+
 		panelBottom.add(bottomLabel);
 		panelBottom.add(execStepBtn);
 		panelBottom.add(execAllBtn);

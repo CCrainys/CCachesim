@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import java.lang.*;
 import java.util.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class MyCacheSim extends JFrame implements ActionListener {
 	private static final long serialVersionUID = 1L;
@@ -343,29 +344,16 @@ public class MyCacheSim extends JFrame implements ActionListener {
 	private int writeDataHitTime, writeDataMissTime;
 	private int memoryWriteTime;
 
-	/*
-	 *	JFileChooser Filter Class
-	 */
-	private class DinFileFilter extends javax.swing.filechooser.FileFilter {
-		public boolean accept(File f) {
-			if (f.isDirectory())
-				return true;
-			String name = f.getName();
-			return name.endsWith(".din") || name.endsWith(".DIN");
-		}
-
-		public String getDescription() {
-			return ".din";
-		}
-	}
-
+ 
 	/*
 	 *	cache simulator class
 	 */
 	public MyCacheSim() {
 		super("Cache Simulator");
 		fileChooser = new JFileChooser();
-		fileChooser.setFileFilter(new DinFileFilter());
+		FileNameExtensionFilter filter = new FileNameExtensionFilter(
+			"din file", "din", "DIN");
+		fileChooser.setFileFilter(filter);
 		draw();
 	}
 

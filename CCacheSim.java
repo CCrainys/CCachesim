@@ -51,6 +51,10 @@ public class CCacheSim extends JFrame implements ActionListener {
 	public String Way;
 	public String Replace;
 	public String Pref;
+	public String Write;
+	public String Alloc;
+	public String Typename;
+	public String Hitname;
 
 
 

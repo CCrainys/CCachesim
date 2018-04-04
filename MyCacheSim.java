@@ -11,57 +11,54 @@ import javax.swing.border.EtchedBorder;
 import java.lang.*;
 import java.util.*;
 
-
 public class MyCacheSim extends JFrame implements ActionListener {
 	private static final long serialVersionUID = 1L;
-/*
-	ui property
-*/
+	/*
+		ui property
+	*/
 	private JPanel panelTop, panelLeft, panelRight, panelBottom;
 	private JButton execStepBtn, execAllBtn, fileBotton;
 	private JComboBox<String> csBox, bsBox, wayBox, replaceBox, prefetchBox, writeBox, allocBox;
 	private JComboBox<String> icsBox, dcsBox;
 	private JFileChooser fileChooser;
-	
-	private JLabel labelTop,labelLeft,rightLabel,bottomLabel,fileLabel,fileAddrBtn, stepLabel1, stepLabel2, csLabel, bsLabel, wayLabel, replaceLabel, prefetchLabel, writeLabel, allocLabel;
+
+	private JLabel labelTop, labelLeft, rightLabel, bottomLabel, fileLabel, fileAddrBtn, stepLabel1, stepLabel2,
+			csLabel, bsLabel, wayLabel, replaceLabel, prefetchLabel, writeLabel, allocLabel;
 	private JLabel icsLabel, dcsLabel;
 	private JLabel resultTagLabel[][];
 	private JLabel resultDataLabel[][];
 
-	private JLabel accessTypeTagLabel, addressTagLabel, blockNumberTagLabel, tagTagLabel, indexTagLabel, inblockAddressTagLabel, hitTagLabel;
-	private JLabel accessTypeDataLabel, addressDataLabel, blockNumberDataLabel, tagDataLabel, indexDataLabel, inblockAddressDataLabel, hitDataLabel;
+	private JLabel accessTypeTagLabel, addressTagLabel, blockNumberTagLabel, tagTagLabel, indexTagLabel,
+			inblockAddressTagLabel, hitTagLabel;
+	private JLabel accessTypeDataLabel, addressDataLabel, blockNumberDataLabel, tagDataLabel, indexDataLabel,
+			inblockAddressDataLabel, hitDataLabel;
 
 	private JRadioButton unifiedCacheButton, separateCacheButton;
-/*
-	options section
-*/
+	/*
+		options section
+	*/
 	private final String cachesize[] = { "2KB", "8KB", "32KB", "128KB", "512KB", "2MB" };
 	private final String scachesize[] = { "1KB", "4KB", "16KB", "64KB", "256KB", "1MB" };
-	private final  String blocksize[] = { "16B", "32B", "64B", "128B", "256B" };
-	private final  String way[] = { "直接映象", "2路", "4路", "8路", "16路", "32路" };
-	private final  String replace[] = { "LRU", "FIFO", "RAND" };
-	private final  String pref[] = { "不预取", "不命中预取" };
-	private final  String write[] = { "写回法", "写直达法" };
-	private final  String alloc[] = { "按写分配", "不按写分配" };
+	private final String blocksize[] = { "16B", "32B", "64B", "128B", "256B" };
+	private final String way[] = { "直接映象", "2路", "4路", "8路", "16路", "32路" };
+	private final String replace[] = { "LRU", "FIFO", "RAND" };
+	private final String pref[] = { "不预取", "不命中预取" };
+	private final String write[] = { "写回法", "写直达法" };
+	private final String alloc[] = { "按写分配", "不按写分配" };
 	//private final  String typename[] = { "读数据", "写数据", "读指令" };
 	//private String hitname[] = {"不命中", "命中" };
 
-	private final  String resultTags[][] = {
-		{"访问总次数:", "不命中次数:", "不命中率:"}, 
-		{"读指令次数:", "不命中次数:", "不命中率:"},
-		{"读数据次数:", "不命中次数:", "不命中率:"},
-		{"写数据次数:", "不命中次数:", "不命中率:"}
-	};
+	private final String resultTags[][] = { { "访问总次数:", "不命中次数:", "不命中率:" }, { "读指令次数:", "不命中次数:", "不命中率:" },
+			{ "读数据次数:", "不命中次数:", "不命中率:" }, { "写数据次数:", "不命中次数:", "不命中率:" } };
 
-
-/*
-	loading file
-*/
+	/*
+		loading file
+	*/
 	private File file;
 
-/*
-	user options record
-*/
+	/*
+		user options record
+	*/
 	private int csIndex, bsIndex, wayIndex, replaceIndex, prefetchIndex, writeIndex, allocIndex;
 
 	private int mcsIndex, mbsIndex, mwayIndex, mreplaceIndex, mprefetchIndex, mwriteIndex, mallocIndex;
@@ -69,9 +66,10 @@ public class MyCacheSim extends JFrame implements ActionListener {
 	private int icsIndex, dcsIndex, micsIndex, mdcsIndex;
 
 	private int cacheType = 0, mcacheType = 0;
-/*
-	instruction class
-*/
+
+	/*
+		instruction class
+	*/
 	private class Instruction {
 		int opt;
 		int tag;
@@ -79,6 +77,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		int blockAddr;
 		int inblockAddr;
 		String addr;
+
 		public Instruction(int opt, String addr) {
 			this.opt = opt;
 			this.addr = addr;
@@ -88,19 +87,22 @@ public class MyCacheSim extends JFrame implements ActionListener {
 
 			if (mcacheType == 0 && uCache != null) {
 				this.tag = Integer.parseInt(baddr.substring(0, 32 - uCache.blockOffset - uCache.groupOffset), 2);
-				this.index = Integer.parseInt(baddr.substring(32 - uCache.blockOffset - uCache.groupOffset, 32 - uCache.blockOffset), 2);
+				this.index = Integer.parseInt(
+						baddr.substring(32 - uCache.blockOffset - uCache.groupOffset, 32 - uCache.blockOffset), 2);
 				this.blockAddr = Integer.parseInt(baddr.substring(0, 32 - uCache.blockOffset), 2);
 				this.inblockAddr = Integer.parseInt(baddr.substring(32 - uCache.blockOffset), 2);
 			}
 			if (mcacheType == 1 && iCache != null && dCache != null) {
 				if (opt == 0 || opt == 1) {
 					this.tag = Integer.parseInt(baddr.substring(0, 32 - dCache.blockOffset - dCache.groupOffset), 2);
-					this.index = Integer.parseInt(baddr.substring(32 - dCache.blockOffset - dCache.groupOffset, 32 - dCache.blockOffset), 2);
+					this.index = Integer.parseInt(
+							baddr.substring(32 - dCache.blockOffset - dCache.groupOffset, 32 - dCache.blockOffset), 2);
 					this.blockAddr = Integer.parseInt(baddr.substring(0, 32 - dCache.blockOffset), 2);
 					this.inblockAddr = Integer.parseInt(baddr.substring(32 - dCache.blockOffset), 2);
 				} else if (opt == 2) {
 					this.tag = Integer.parseInt(baddr.substring(0, 32 - iCache.blockOffset - iCache.groupOffset), 2);
-					this.index = Integer.parseInt(baddr.substring(32 - iCache.blockOffset - iCache.groupOffset, 32 - iCache.blockOffset), 2);
+					this.index = Integer.parseInt(
+							baddr.substring(32 - iCache.blockOffset - iCache.groupOffset, 32 - iCache.blockOffset), 2);
 					this.blockAddr = Integer.parseInt(baddr.substring(0, 32 - iCache.blockOffset), 2);
 					this.inblockAddr = Integer.parseInt(baddr.substring(32 - iCache.blockOffset), 2);
 				}
@@ -108,7 +110,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		}
 
 		public String description() {
-			return "opt = " + opt + ", tag = " + tag + ", index = " + index + ", inblockAddr = " + inblockAddr; 
+			return "opt = " + opt + ", tag = " + tag + ", index = " + index + ", inblockAddr = " + inblockAddr;
 		}
 
 		private String HexAddr2BinAddr() {
@@ -118,57 +120,57 @@ public class MyCacheSim extends JFrame implements ActionListener {
 				sb.append("0000");
 			}
 			for (int i = 0; i < this.addr.length(); i++) {
-				switch(this.addr.charAt(i)) {
-					case '0':
-						sb.append("0000");
-						break;
-					case '1':
-						sb.append("0001");
-						break;
-					case '2':
-						sb.append("0010");
-						break;
-					case '3':
-						sb.append("0011");
-						break;
-					case '4':
-						sb.append("0100");
-						break;
-					case '5':
-						sb.append("0101");
-						break;
-					case '6':
-						sb.append("0110");
-						break;
-					case '7':
-						sb.append("0111");
-						break;
-					case '8':
-						sb.append("1000");
-						break;
-					case '9':
-						sb.append("1001");
-						break;
-					case 'a':
-						sb.append("1010");
-						break;
-					case 'b':
-						sb.append("1011");
-						break;
-					case 'c':
-						sb.append("1100");
-						break;
-					case 'd':
-						sb.append("1101");
-						break;
-					case 'e':
-						sb.append("1110");
-						break;
-					case 'f':
-						sb.append("1111");
-						break;
-					default:
-						System.out.println("Data Error!");
+				switch (this.addr.charAt(i)) {
+				case '0':
+					sb.append("0000");
+					break;
+				case '1':
+					sb.append("0001");
+					break;
+				case '2':
+					sb.append("0010");
+					break;
+				case '3':
+					sb.append("0011");
+					break;
+				case '4':
+					sb.append("0100");
+					break;
+				case '5':
+					sb.append("0101");
+					break;
+				case '6':
+					sb.append("0110");
+					break;
+				case '7':
+					sb.append("0111");
+					break;
+				case '8':
+					sb.append("1000");
+					break;
+				case '9':
+					sb.append("1001");
+					break;
+				case 'a':
+					sb.append("1010");
+					break;
+				case 'b':
+					sb.append("1011");
+					break;
+				case 'c':
+					sb.append("1100");
+					break;
+				case 'd':
+					sb.append("1101");
+					break;
+				case 'e':
+					sb.append("1110");
+					break;
+				case 'f':
+					sb.append("1111");
+					break;
+				default:
+					System.out.println("Data Error!");
 				}
 			}
 
@@ -177,9 +179,9 @@ public class MyCacheSim extends JFrame implements ActionListener {
 
 	}
 
-/*
-	instruction property
-*/
+	/*
+		instruction property
+	*/
 	private Instruction instructions[];
 	private final int INSTRUCTION_MAX_SIZE = 100000;
 	private int isize;
@@ -198,21 +200,22 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			time = -1L;
 		}
 	}
-/*
-	cache class
-*/
-	private class Cache { 
+
 	/*
-		cache property
+		cache class
 	*/
+	private class Cache {
+		/*
+			cache property
+		*/
 		private CacheBlock cache[][];
-		private int 	cacheSize; 
-		private int 	blockSize; 
-		private int 	blockNum;
-		private int 	blockOffset;
-		private int 	blockNumInAGroup;
-		private int 	groupNum;
-		private int 	groupOffset;
+		private int cacheSize;
+		private int blockSize;
+		private int blockNum;
+		private int blockOffset;
+		private int blockNumInAGroup;
+		private int groupNum;
+		private int groupOffset;
 
 		private long groupFIFOTime[];
 
@@ -241,7 +244,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		public boolean read(int tag, int index, int inblockAddr) {
 			for (int i = 0; i < blockNumInAGroup; i++) {
 				if (cache[index][i].tag == tag) {//hit
-					cache[index][i].count++;					
+					cache[index][i].count++;
 					/*
 						Now pretend to send data to CPU
 					*/
@@ -275,7 +278,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			return false;
 		}
 
-		public void prefetch(int nextBlockAddr) {		
+		public void prefetch(int nextBlockAddr) {
 
 			int nextTag = nextBlockAddr / pow(2, groupOffset + blockOffset);
 			int nextIndex = nextBlockAddr / pow(2, blockOffset) % pow(2, groupOffset);
@@ -332,20 +335,21 @@ public class MyCacheSim extends JFrame implements ActionListener {
 
 	Cache uCache, iCache, dCache;
 
-/*
- *	statistic property
- */
+	/*
+	 *	statistic property
+	 */
 
 	private int readDataMissTime, readInstMissTime, readInstHitTime, readDataHitTime;
 	private int writeDataHitTime, writeDataMissTime;
 	private int memoryWriteTime;
 
-/*
- *	JFileChooser Filter Class
- */
-	private class DinFileFilter extends  javax.swing.filechooser.FileFilter{
+	/*
+	 *	JFileChooser Filter Class
+	 */
+	private class DinFileFilter extends javax.swing.filechooser.FileFilter {
 		public boolean accept(File f) {
-			if (f.isDirectory()) return true;
+			if (f.isDirectory())
+				return true;
 			String name = f.getName();
 			return name.endsWith(".din") || name.endsWith(".DIN");
 		}
@@ -355,10 +359,10 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		}
 	}
 
-/*
- *	cache simulator class
- */
-	public MyCacheSim(){
+	/*
+	 *	cache simulator class
+	 */
+	public MyCacheSim() {
 		super("Cache Simulator");
 		fileChooser = new JFileChooser();
 		fileChooser.setFileFilter(new DinFileFilter());
@@ -372,30 +376,30 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		if (e.getSource() == execStepBtn) {
 			simExecStep(true);
 		}
-		if (e.getSource() == fileBotton){
+		if (e.getSource() == fileBotton) {
 			int fileOver = fileChooser.showOpenDialog(null);
 			if (fileOver == 0) {
-				   	String path = fileChooser.getSelectedFile().getAbsolutePath();
-				   	fileAddrBtn.setText(path);
-				   	file = new File(path);
+				String path = fileChooser.getSelectedFile().getAbsolutePath();
+				fileAddrBtn.setText(path);
+				file = new File(path);
 
-				   	/*
-						fix the setting
-					*/
-					mcacheType = cacheType;
-					mcsIndex = csIndex;
-					micsIndex = icsIndex;
-					mdcsIndex = dcsIndex;
-					mbsIndex = bsIndex;
-					mwayIndex = wayIndex;
-					mreplaceIndex = replaceIndex;
-					mprefetchIndex = prefetchIndex;
-					mwriteIndex = writeIndex;
-					mallocIndex = allocIndex;
+				/*
+					fix the setting
+				*/
+				mcacheType = cacheType;
+				mcsIndex = csIndex;
+				micsIndex = icsIndex;
+				mdcsIndex = dcsIndex;
+				mbsIndex = bsIndex;
+				mwayIndex = wayIndex;
+				mreplaceIndex = replaceIndex;
+				mprefetchIndex = prefetchIndex;
+				mwriteIndex = writeIndex;
+				mallocIndex = allocIndex;
 
-				   	initCache();
-				   	readFile();
-					reloadUI();
+				initCache();
+				readFile();
+				reloadUI();
 			}
 		}
 	}
@@ -417,8 +421,6 @@ public class MyCacheSim extends JFrame implements ActionListener {
 
 		memoryWriteTime = 0;
 
-
-
 		/*
 			Cache initialization
 		*/
@@ -431,18 +433,18 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			System.out.println("Unified Cache:");
 			uCache.description();
 
-	 	} else if (mcacheType == 1) {
-	 		uCache = null;
-	 		iCache = new Cache(1 * 1024 * pow(4, micsIndex), 16 * pow(2, mbsIndex));
+		} else if (mcacheType == 1) {
+			uCache = null;
+			iCache = new Cache(1 * 1024 * pow(4, micsIndex), 16 * pow(2, mbsIndex));
 			dCache = new Cache(1 * 1024 * pow(4, mdcsIndex), 16 * pow(2, mbsIndex));
 
 			System.out.println("Instruction Cache:");
 			iCache.description();
 			System.out.println("Data Cache:");
 			dCache.description();
-	 	}
+		}
 	}
-	
+
 	/*
 	 * 将指令和数据流从文件中读入
 	 */
@@ -453,13 +455,13 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			isize = 0;
 			ip = 0;
 
-			while(s.hasNextLine()) {
+			while (s.hasNextLine()) {
 				String line = s.nextLine();
 				String[] items = line.split(" ");
 				instructions[isize] = new Instruction(Integer.parseInt(items[0].trim()), items[1].trim());
 				isize++;
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -480,7 +482,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		inblockAddressDataLabel.setText("--");
 		hitDataLabel.setText("--");
 	}
-	
+
 	/*
 	 * 模拟单步执行
 	 */
@@ -494,15 +496,15 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		int index = instructions[ip].index;
 		int tag = instructions[ip].tag;
 		int inblockAddr = instructions[ip].inblockAddr;
-		
+
 		//System.out.printf("opt = %d, tag = %d, index = %d, inblockAddr = %d\n", opt, tag, index, inblockAddr);
 		System.out.println(instructions[ip].description());
 
 		boolean isHit = false;
 		if (mcacheType == 0) {
-/*	
-	unified cache
-*/	
+			/*	
+				unified cache
+			*/
 			if (opt == 0) {// read data
 				isHit = uCache.read(tag, index, inblockAddr);
 				if (isHit) {
@@ -544,7 +546,6 @@ public class MyCacheSim extends JFrame implements ActionListener {
 					}
 				}
 
-
 			} else if (opt == 2) {// read instruction 
 				isHit = uCache.read(tag, index, inblockAddr);
 				if (isHit) {
@@ -560,16 +561,16 @@ public class MyCacheSim extends JFrame implements ActionListener {
 					*/
 					if (mprefetchIndex == 0) {// do not prefetch
 						//doing nothing
-					} else if (mprefetchIndex == 1){// prefetch if instruction missed!
+					} else if (mprefetchIndex == 1) {// prefetch if instruction missed!
 						uCache.prefetch(instructions[ip].blockAddr + 1);
 					}
 				}
 			}
 
 		} else if (mcacheType == 1) {
-/*
-	seperated cache
-*/
+			/*
+				seperated cache
+			*/
 			if (opt == 0) {// read data
 				isHit = dCache.read(tag, index, inblockAddr);
 				if (isHit) {
@@ -611,7 +612,6 @@ public class MyCacheSim extends JFrame implements ActionListener {
 					}
 				}
 
-
 			} else if (opt == 2) {// read instruction 
 				isHit = iCache.read(tag, index, inblockAddr);
 				if (isHit) {
@@ -627,7 +627,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 					*/
 					if (mprefetchIndex == 0) {// do not prefetch
 						//doing nothing
-					} else if (mprefetchIndex == 1){// prefetch if instruction missed!
+					} else if (mprefetchIndex == 1) {// prefetch if instruction missed!
 						iCache.prefetch(instructions[ip].blockAddr + 1);
 					}
 				}
@@ -643,33 +643,33 @@ public class MyCacheSim extends JFrame implements ActionListener {
 	private void statisticUIUpdate(Instruction inst, boolean isHit) {
 
 		int totalMissTime = readInstMissTime + readDataMissTime + writeDataMissTime;
-		int totalVisitTime = totalMissTime + readInstHitTime + readDataHitTime + writeDataHitTime; 
-		
+		int totalVisitTime = totalMissTime + readInstHitTime + readDataHitTime + writeDataHitTime;
+
 		resultDataLabel[0][0].setText(totalVisitTime + "");
 		resultDataLabel[0][1].setText(totalMissTime + "");
 		if (totalVisitTime > 0) {
-			double missRate = ((double)totalMissTime / (double)totalVisitTime) * 100;
+			double missRate = ((double) totalMissTime / (double) totalVisitTime) * 100;
 			resultDataLabel[0][2].setText(String.format("%.2f", missRate) + "%");
 		}
 
 		resultDataLabel[1][0].setText((readInstHitTime + readInstMissTime) + "");
 		resultDataLabel[1][1].setText(readInstMissTime + "");
 		if (readInstMissTime + readInstHitTime > 0) {
-			double missRate = ((double)readInstMissTime/(double)(readInstMissTime + readInstHitTime)) * 100;
+			double missRate = ((double) readInstMissTime / (double) (readInstMissTime + readInstHitTime)) * 100;
 			resultDataLabel[1][2].setText(String.format("%.2f", missRate) + "%");
 		}
 
 		resultDataLabel[2][0].setText((readDataHitTime + readDataMissTime) + "");
 		resultDataLabel[2][1].setText(readDataMissTime + "");
 		if (readDataMissTime + readDataHitTime > 0) {
-			double missRate = ((double)readDataMissTime/(double)(readDataMissTime + readDataHitTime)) * 100;
+			double missRate = ((double) readDataMissTime / (double) (readDataMissTime + readDataHitTime)) * 100;
 			resultDataLabel[2][2].setText(String.format("%.2f", missRate) + "%");
 		}
-		
+
 		resultDataLabel[3][0].setText((writeDataHitTime + writeDataMissTime) + "");
 		resultDataLabel[3][1].setText(writeDataMissTime + "");
 		if (writeDataMissTime + writeDataHitTime > 0) {
-			double missRate = ((double)writeDataMissTime/(double)(writeDataMissTime + writeDataHitTime)) * 100;
+			double missRate = ((double) writeDataMissTime / (double) (writeDataMissTime + writeDataHitTime)) * 100;
 			resultDataLabel[3][2].setText(String.format("%.2f", missRate) + "%");
 		}
 
@@ -694,7 +694,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			hitDataLabel.setText("未命中");
 		}
 	}
-	
+
 	/*
 	 * 模拟执行到底
 	 */
@@ -708,15 +708,15 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		辅助函数
 	*/
 	private int pow(int x, int p) {
-		return (int)Math.pow(x, p);
+		return (int) Math.pow(x, p);
 	}
 
 	private int log2(int x) {
-		return (int)(Math.log(x) / Math.log(2));
+		return (int) (Math.log(x) / Math.log(2));
 	}
 
 	private int random(int x, int y) {
-		return (int)Math.random() * (y - x) + x;
+		return (int) Math.random() * (y - x) + x;
 	}
 
 	/*
@@ -737,7 +737,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 	}
 
 	private void draw() {
-		setLayout(new BorderLayout(5,5));
+		setLayout(new BorderLayout(5, 5));
 		panelTop = new JPanel();
 		panelLeft = new JPanel();
 		panelRight = new JPanel();
@@ -758,7 +758,6 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		panelTop.add(labelTop);
 		panelTop.add(promptLabel);
 
-
 		labelLeft = new JLabel("Cache 参数设置");
 		labelLeft.setPreferredSize(new Dimension(300, 40));
 
@@ -777,8 +776,8 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		unifiedCacheButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				separateCacheEnabled(false);
-				unifiedCacheEnabled(true);		
-				cacheType = 0;		
+				unifiedCacheEnabled(true);
+				cacheType = 0;
 			}
 		});
 
@@ -841,7 +840,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 				wayIndex = wayBox.getSelectedIndex();
 			}
 		});
-		
+
 		//替换策略设置
 		replaceLabel = new JLabel("替换策略");
 		replaceLabel.setPreferredSize(new Dimension(120, 30));
@@ -852,18 +851,18 @@ public class MyCacheSim extends JFrame implements ActionListener {
 				replaceIndex = replaceBox.getSelectedIndex();
 			}
 		});
-		
+
 		//欲取策略设置
 		prefetchLabel = new JLabel("预取策略");
 		prefetchLabel.setPreferredSize(new Dimension(120, 30));
 		prefetchBox = new JComboBox<String>(pref);
 		prefetchBox.setPreferredSize(new Dimension(160, 30));
-		prefetchBox.addItemListener(new ItemListener(){
-			public void itemStateChanged(ItemEvent e){
+		prefetchBox.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
 				prefetchIndex = prefetchBox.getSelectedIndex();
 			}
 		});
-		
+
 		//写策略设置
 		writeLabel = new JLabel("写策略");
 		writeLabel.setPreferredSize(new Dimension(120, 30));
@@ -874,7 +873,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 				writeIndex = writeBox.getSelectedIndex();
 			}
 		});
-		
+
 		//调块策略
 		allocLabel = new JLabel("写不命中调块策略");
 		allocLabel.setPreferredSize(new Dimension(120, 30));
@@ -885,15 +884,15 @@ public class MyCacheSim extends JFrame implements ActionListener {
 				allocIndex = allocBox.getSelectedIndex();
 			}
 		});
-		
+
 		//选择指令流文件
 		fileLabel = new JLabel("选择指令流文件");
 		fileLabel.setPreferredSize(new Dimension(120, 30));
 		fileAddrBtn = new JLabel();
-		fileAddrBtn.setPreferredSize(new Dimension(210,30));
+		fileAddrBtn.setPreferredSize(new Dimension(210, 30));
 		fileAddrBtn.setBorder(new EtchedBorder(EtchedBorder.RAISED));
 		fileBotton = new JButton("浏览");
-		fileBotton.setPreferredSize(new Dimension(70,30));
+		fileBotton.setPreferredSize(new Dimension(70, 30));
 		fileBotton.addActionListener(this);
 
 		panelLeft.add(labelLeft);
@@ -944,7 +943,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 				} else {
 					resultDataLabel[i][j] = new JLabel("0.00%");
 				}
-				
+
 				resultDataLabel[i][j].setPreferredSize(new Dimension(83, 40));
 
 				panelRight.add(resultTagLabel[i][j]);
@@ -957,7 +956,6 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			}
 		}
 
-
 		/*
 		stepLabel1 = new JLabel();
 		stepLabel1.setVisible(false);
@@ -967,7 +965,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		stepLabel2.setPreferredSize(new Dimension(500, 40));
 		
 		
-
+		
 		
 		panelRight.add(stepLabel1);
 		panelRight.add(stepLabel2);
@@ -1020,9 +1018,8 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		panelRight.add(inblockAddressTagLabel);
 		panelRight.add(inblockAddressDataLabel);
 
-
 		//*****************************底部面板绘制*****************************************//
-		
+
 		bottomLabel = new JLabel("执行控制");
 		bottomLabel.setPreferredSize(new Dimension(800, 30));
 		execStepBtn = new JButton("步进");
@@ -1031,7 +1028,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		execAllBtn = new JButton("执行到底");
 		execAllBtn.setLocation(300, 30);
 		execAllBtn.addActionListener(this);
-		
+
 		panelBottom.add(bottomLabel);
 		panelBottom.add(execStepBtn);
 		panelBottom.add(execAllBtn);

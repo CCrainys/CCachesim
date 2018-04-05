@@ -11,21 +11,28 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.border.EtchedBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import javafx.scene.control.Separator;
 
 public class CCacheSim extends JFrame implements ActionListener {
 
 	private JPanel panelTop, panelLeft, panelRight, panelBottom;
 	private JButton execStepBtn, execAllBtn, fileBotton;
-	private JComboBox csBox, bsBox, wayBox, replaceBox, prefetchBox, writeBox, allocBox;
+	private JComboBox<String> csBox, icsBox, dcsBox, bsBox, wayBox, replaceBox, prefetchBox, writeBox, allocBox;
 	private JFileChooser fileChoose;
 
 	private JLabel labelTop, labelLeft, rightLabel, bottomLabel, fileLabel, fileAddrBtn, stepLabel1, stepLabel2,
-			csLabel, bsLabel, wayLabel, replaceLabel, prefetchLabel, writeLabel, allocLabel;
+			csLabel, icsLabel, dcsLabel, emptyLabel, bsLabel, wayLabel, replaceLabel, prefetchLabel, writeLabel,
+			allocLabel;
 	private JLabel results[];
+	private JRadioButton unifiedcacheButton, separatecacheButton;
 
 	//参数定义
 	private String cachesize[] = { "2KB", "8KB", "32KB", "128KB", "512KB", "2MB" };
+	private String spcachesize[] = { "1KB", "4KB", "16KB", "64KB", "256KB", "1MB" };
 	private String blocksize[] = { "16B", "32B", "64B", "128B", "256B" };
 	private String way[] = { "直接映象", "2路", "4路", "8路", "16路", "32路" };
 	private String replace[] = { "LRU", "FIFO", "RAND" };
@@ -42,27 +49,20 @@ public class CCacheSim extends JFrame implements ActionListener {
 	private File file;
 
 	//分别表示左侧几个下拉框所选择的第几项，索引从 0 开始
-	private int csIndex, bsIndex, wayIndex, replaceIndex, prefetchIndex, writeIndex, allocIndex;
+	private int csIndex, icsIndex, dcsIndex, bsIndex, wayIndex, replaceIndex, prefetchIndex, writeIndex, allocIndex;
 
 	//其它变量定义
 	//...
-	public String CacheSize;
-	public String BlockSize;
-	public String Way;
-	public String Replace;
-	public String Pref;
-	public String Write;
-	public String Alloc;
-	public String Typename;
-	public String Hitname;
-
-
+	private int CacheMod = 0;
 
 	/*
 	 * 构造函数，绘制模拟器面板
 	 */
 	public CCacheSim() {
 		super("Cache Simulator");
+		fileChoose = new JFileChooser();
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("din file", "din", "DIN");
+		fileChoose.setFileFilter(filter);
 		draw();
 	}
 
@@ -122,6 +122,29 @@ public class CCacheSim extends JFrame implements ActionListener {
 		new CCacheSim();
 	}
 
+	private void cacheTypeSelect(int CacheMod) {
+		if (CacheMod == 0) {
+			unifiedcacheButton.setSelected(true);
+			csBox.setEnabled(true);
+			csLabel.setEnabled(true);
+			separatecacheButton.setSelected(false);
+			icsBox.setEnabled(false);
+			icsLabel.setEnabled(false);
+			dcsLabel.setEnabled(false);
+			dcsBox.setEnabled(false);
+
+		} else {
+			separatecacheButton.setSelected(true);
+			icsBox.setEnabled(true);
+			icsLabel.setEnabled(true);
+			dcsLabel.setEnabled(true);
+			dcsBox.setEnabled(true);
+			unifiedcacheButton.setSelected(false);
+			csBox.setEnabled(false);
+			csLabel.setEnabled(false);
+		}
+	}
+
 	/**
 	 * 绘制 Cache 模拟器图形化界面
 	 * 无需做修改
@@ -151,21 +174,69 @@ public class CCacheSim extends JFrame implements ActionListener {
 		labelLeft = new JLabel("Cache 参数设置");
 		labelLeft.setPreferredSize(new Dimension(300, 40));
 
+		//cache 种类
+		unifiedcacheButton = new JRadioButton("UnifiedCache:", true);
+		unifiedcacheButton.setPreferredSize(new Dimension(120, 30));
+		unifiedcacheButton.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				CacheMod = 0;
+				cacheTypeSelect(CacheMod);
+			}
+		});
+
 		//cache 大小设置
 		csLabel = new JLabel("总大小");
-		csLabel.setPreferredSize(new Dimension(120, 30));
-		csBox = new JComboBox(cachesize);
-		csBox.setPreferredSize(new Dimension(160, 30));
+		csLabel.setPreferredSize(new Dimension(60, 30));
+		csBox = new JComboBox<String>(cachesize);
+		csBox.setPreferredSize(new Dimension(90, 30));
 		csBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
 				csIndex = csBox.getSelectedIndex();
 			}
 		});
 
+		separatecacheButton = new JRadioButton("SeprateCache:");
+		separatecacheButton.setPreferredSize(new Dimension(120, 30));
+		separatecacheButton.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				CacheMod = 1;
+				cacheTypeSelect(CacheMod);
+			}
+		});
+
+		icsLabel = new JLabel("ICache");
+		icsLabel.setPreferredSize(new Dimension(60, 30));
+
+		icsBox = new JComboBox<String>(spcachesize);
+		icsBox.setPreferredSize(new Dimension(90, 30));
+		icsBox.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				icsIndex = icsBox.getSelectedIndex();
+			}
+		});
+
+		emptyLabel = new JLabel("");
+		emptyLabel.setPreferredSize(new Dimension(120, 30));
+
+		dcsLabel = new JLabel("DCache");
+		dcsLabel.setPreferredSize(new Dimension(60, 30));
+		dcsBox = new JComboBox<String>(spcachesize);
+		dcsBox.setPreferredSize(new Dimension(90, 30));
+		dcsBox.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				dcsIndex = dcsBox.getSelectedIndex();
+			}
+		});
+
+		cacheTypeSelect(0);
 		//cache 块大小设置
 		bsLabel = new JLabel("块大小");
 		bsLabel.setPreferredSize(new Dimension(120, 30));
-		bsBox = new JComboBox(blocksize);
+		bsBox = new JComboBox<String>(blocksize);
 		bsBox.setPreferredSize(new Dimension(160, 30));
 		bsBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -176,7 +247,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 		//相连度设置
 		wayLabel = new JLabel("相联度");
 		wayLabel.setPreferredSize(new Dimension(120, 30));
-		wayBox = new JComboBox(way);
+		wayBox = new JComboBox<String>(way);
 		wayBox.setPreferredSize(new Dimension(160, 30));
 		wayBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -187,7 +258,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 		//替换策略设置
 		replaceLabel = new JLabel("替换策略");
 		replaceLabel.setPreferredSize(new Dimension(120, 30));
-		replaceBox = new JComboBox(replace);
+		replaceBox = new JComboBox<String>(replace);
 		replaceBox.setPreferredSize(new Dimension(160, 30));
 		replaceBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -198,7 +269,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 		//欲取策略设置
 		prefetchLabel = new JLabel("预取策略");
 		prefetchLabel.setPreferredSize(new Dimension(120, 30));
-		prefetchBox = new JComboBox(pref);
+		prefetchBox = new JComboBox<String>(pref);
 		prefetchBox.setPreferredSize(new Dimension(160, 30));
 		prefetchBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -209,7 +280,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 		//写策略设置
 		writeLabel = new JLabel("写策略");
 		writeLabel.setPreferredSize(new Dimension(120, 30));
-		writeBox = new JComboBox(write);
+		writeBox = new JComboBox<String>(write);
 		writeBox.setPreferredSize(new Dimension(160, 30));
 		writeBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -220,7 +291,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 		//调块策略
 		allocLabel = new JLabel("写不命中调块策略");
 		allocLabel.setPreferredSize(new Dimension(120, 30));
-		allocBox = new JComboBox(alloc);
+		allocBox = new JComboBox<String>(alloc);
 		allocBox.setPreferredSize(new Dimension(160, 30));
 		allocBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -239,8 +310,15 @@ public class CCacheSim extends JFrame implements ActionListener {
 		fileBotton.addActionListener(this);
 
 		panelLeft.add(labelLeft);
+		panelLeft.add(unifiedcacheButton);
 		panelLeft.add(csLabel);
 		panelLeft.add(csBox);
+		panelLeft.add(separatecacheButton);
+		panelLeft.add(icsLabel);
+		panelLeft.add(icsBox);
+		panelLeft.add(emptyLabel);
+		panelLeft.add(dcsLabel);
+		panelLeft.add(dcsBox);
 		panelLeft.add(bsLabel);
 		panelLeft.add(bsBox);
 		panelLeft.add(wayLabel);

@@ -31,6 +31,8 @@ public class CCacheSim extends JFrame implements ActionListener {
 			allocLabel;
 	private JLabel results[][], rData[][];
 	private JRadioButton unifiedcacheButton, separatecacheButton;
+	private int readDataMissTime, readInstMissTime, readDataHitTime, readInstHitTime, writeDataHitTime,
+			writeDataMissTime, memoryWriteTime;
 
 	//参数定义
 	private String cachesize[] = { "2KB", "8KB", "32KB", "128KB", "512KB", "2MB" };
@@ -125,7 +127,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			return false;
 		}
 
-		public boolean write(int tag, int index, int offset, int time) {
+		public boolean write(int tag, int index, int time) {
 			for (int i = 0; i < associativity; i++) {
 				if (cache[index][i].valid == true && cache[index][i].tag == tag) {//hit					
 
@@ -257,7 +259,15 @@ public class CCacheSim extends JFrame implements ActionListener {
 	 * 初始化 Cache 模拟器
 	 */
 	public void initCache() {
+		readDataMissTime = 0;
+		readInstMissTime = 0;
+		readDataHitTime = 0;
+		readInstHitTime = 0;
 
+		writeDataHitTime = 0;
+		writeDataMissTime = 0;
+
+		memoryWriteTime = 0;
 	}
 
 	/*
@@ -282,9 +292,147 @@ public class CCacheSim extends JFrame implements ActionListener {
 	/*
 	 * 模拟单步执行
 	 */
-	public void simExecStep() {
+	public void simExecStep(boolean isshow) {
+		if(ip<instrNum){
+			int type = instr_Set[ip].type;
+			int index = instr_Set[ip].index;
+			int tag = instr_Set[ip].tag;
+	
+			//System.out.println(instr_Set[ip].description());
+	
+			boolean isHit = false;
+			if (CacheMod == 0) {
+				/*	
+					unified cache
+				*/
+				if (type == 0) {// read data
+					isHit = ucache.read(tag, index, ip+1);
+					if (isHit) {
+						readDataHitTime++;
+					} else {
+						readDataMissTime++;
+						ucache.replace(tag, index,ip+1);
+					}
+				} else if (type == 1) {
+					isHit = ucache.write(tag, index, ip+1);
+					if (isHit) {
+						writeDataHitTime++;
+					} else {
+						writeDataMissTime++;
+						if (allocIndex == 0) {
+
+							ucache.replace(tag, index,ip+1);
+
+							ucache.write(tag, index, ip+1);
+						} else if (allocIndex == 1) {
+
+							memoryWriteTime++;
+						}
+					}
+	
+				} else if (type == 2) {// read instruction 
+					isHit = ucache.read(tag, index, inblockAddr);
+					if (isHit) {
+						readInstHitTime++;
+					} else {
+						readInstMissTime++;
+						/*
+							Now pretend to find the block in memory
+						*/
+						ucache.replace(tag, index,ip+1);
+						/*
+							Now pretend to load the data in block into CPU
+						*/
+						if (refetchIndex == 0) {// do not prefetch
+							//doing nothing
+						} else if (prefetchIndex == 1) {// prefetch if instruction missed!
+							ucache.prefetch(instr_Set[ip].blockAddr + 1);
+						}
+					}
+				}
+	
+			} else if (CacheMod == 1) {
+				if (type == 0) {// read data
+					isHit = dcache.read(tag, index, ip+1);
+					if (isHit) {
+						readDataHitTime++;
+					} else {
+						readDataMissTime++;
+						dcache.replace(tag, index,ip+1);
+					}
+				} else if (type == 1) {// write data
+					isHit = dcache.write(tag, index,ip+1);
+					if (isHit) {
+						writeDataHitTime++;
+					} else {
+						writeDataMissTime++;
+						if (allocIndex == 0) {
+							dcache.replace(tag, index,ip+1);
+							dcache.write(tag, index,ip+1);
+						} else if (allocIndex == 1) {
+							memoryWriteTime++;
+						}
+					}
+	
+				} else if (type == 2) {
+					isHit = icache.read(tag, index, ip+1);
+					if (isHit) {
+						readInstHitTime++;
+					} else {
+						readInstMissTime++;
+						icache.replace(tag, index,ip+1);
+						if (prefetchIndex == 0) {
+						} else if (prefetchIndex == 1) {
+							icache.prefetch(instr_Set[ip].blockAddr + 1);
+						}
+					}
+				}
+			}
+	
+			if (isshow || ip == isize - 1) {
+				loadresult(instr_Set[ip], isHit);
+			}
+			ip++;
+		}
+
 
 	}
+
+	private void statisticUIUpdate(Instruction inst, boolean isHit) {
+
+		int totalMissTime = readInstMissTime + readDataMissTime + writeDataMissTime;
+		int totalVisitTime = totalMissTime + readInstHitTime + readDataHitTime + writeDataHitTime;
+
+		resultDataLabel[0][0].setText(totalVisitTime + "");
+		resultDataLabel[0][1].setText(totalMissTime + "");
+		if (totalVisitTime > 0) {
+			double missRate = ((double) totalMissTime / (double) totalVisitTime) * 100;
+			resultDataLabel[0][2].setText(String.format("%.2f", missRate) + "%");
+		}
+
+		resultDataLabel[1][0].setText((readInstHitTime + readInstMissTime) + "");
+		resultDataLabel[1][1].setText(readInstMissTime + "");
+		if (readInstMissTime + readInstHitTime > 0) {
+			double missRate = ((double) readInstMissTime / (double) (readInstMissTime + readInstHitTime)) * 100;
+			resultDataLabel[1][2].setText(String.format("%.2f", missRate) + "%");
+		}
+
+		resultDataLabel[2][0].setText((readDataHitTime + readDataMissTime) + "");
+		resultDataLabel[2][1].setText(readDataMissTime + "");
+		if (readDataMissTime + readDataHitTime > 0) {
+			double missRate = ((double) readDataMissTime / (double) (readDataMissTime + readDataHitTime)) * 100;
+			resultDataLabel[2][2].setText(String.format("%.2f", missRate) + "%");
+		}
+
+		resultDataLabel[3][0].setText((writeDataHitTime + writeDataMissTime) + "");
+		resultDataLabel[3][1].setText(writeDataMissTime + "");
+		if (writeDataMissTime + writeDataHitTime > 0) {
+			double missRate = ((double) writeDataMissTime / (double) (writeDataMissTime + writeDataHitTime)) * 100;
+			resultDataLabel[3][2].setText(String.format("%.2f", missRate) + "%");
+		}
+
+	}
+
 
 	/*
 	 * 模拟执行到底

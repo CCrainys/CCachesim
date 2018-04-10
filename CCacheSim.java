@@ -5,6 +5,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.util.Scanner;
+import java.util.LinkedList;
+import java.lang.Integer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
@@ -14,8 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.border.EtchedBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-
-import javafx.scene.control.Separator;
+import java.util.Random;
 
 public class CCacheSim extends JFrame implements ActionListener {
 
@@ -27,7 +29,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 	private JLabel labelTop, labelLeft, rightLabel, bottomLabel, fileLabel, fileAddrBtn, stepLabel1, stepLabel2,
 			csLabel, icsLabel, dcsLabel, emptyLabel, bsLabel, wayLabel, replaceLabel, prefetchLabel, writeLabel,
 			allocLabel;
-	private JLabel results[];
+	private JLabel results[][], rData[][];
 	private JRadioButton unifiedcacheButton, separatecacheButton;
 
 	//参数定义
@@ -43,8 +45,11 @@ public class CCacheSim extends JFrame implements ActionListener {
 	private String hitname[] = { "不命中", "命中" };
 
 	//右侧结果显示
-	private String rightLable[] = { "访问总次数：", "读指令次数：", "读数据次数：", "写数据次数：" };
+	private String rightTags[][] = { { "访问总次数:", "不命中次数:", "不命中率:" }, { "读指令次数:", "不命中次数:", "不命中率:" },
+			{ "读数据次数:", "不命中次数:", "不命中率:" }, { "写数据次数:", "不命中次数:", "不命中率:" } };
 
+	private String rightData[][] = { { "0 ", "0", "0.00" }, { "0", "0", "0.00" }, { "0", "0", "0.00" },
+			{ "0", "0", "0.00" } };
 	//打开文件
 	private File file;
 
@@ -54,6 +59,164 @@ public class CCacheSim extends JFrame implements ActionListener {
 	//其它变量定义
 	//...
 	private int CacheMod = 0;
+	private int instrNum = 0;
+	private int ip = 0;
+	private static final int Instr_len = 32;
+	private Instr instr_Set[];
+	private Cache ucache, icache, dcache;
+
+	private class CacheBlock {
+		int tag;
+		boolean dirty;
+		int firsttime;
+		int lasttime;
+		boolean valid;
+		int count;
+
+		public CacheBlock() {
+			this.tag = -1;
+			dirty = false;
+			firsttime = 0;
+			lasttime = 0;
+			valid = false;
+			count = 0;
+		}
+	}
+
+	private class Cache {
+
+		private int blocksize;
+		private int cachesize;
+		private int blockNum;
+		private int offsetlen;
+		private int associativity;
+		private int groupNum;
+		private int indexlen;
+		private CacheBlock cache[][];
+		private LinkedList<CacheBlock> fifo = new LinkedList<CacheBlock>();
+
+		public Cache(int cachesize, int blocksize) {
+			this.cachesize = cachesize;
+			this.blocksize = blocksize;
+			blockNum = cachesize / blocksize;
+			offsetlen = log(blockNum, 2);
+			associativity = (int) Math.pow(2, wayIndex);
+			groupNum = blockNum / associativity;
+			indexlen = log(groupNum, 2);
+			cache = new CacheBlock[groupNum][associativity];
+			for (int i = 0; i < groupNum; i++) {
+				for (int j = 0; j < associativity; j++) {
+					cache[i][j] = new CacheBlock();
+				}
+			}
+		}
+
+		public int log(int x, int base) {
+			return (int) (Math.log(x) / Math.log(base));
+		}
+
+		public boolean read(int tag, int index, int time) {
+			for (int i = 0; i < associativity; i++) {
+				if (cache[index][i].valid == true && cache[index][i].tag == tag) {
+					cache[index][i].lasttime = time;
+					return true;
+				}
+			}
+			return false;
+		}
+
+		public boolean write(int tag, int index, int offset, int time) {
+			for (int i = 0; i < associativity; i++) {
+				if (cache[index][i].valid == true && cache[index][i].tag == tag) {//hit					
+
+					cache[index][i].lasttime = time;
+					if (writeIndex == 0) {
+						cache[index][i].dirty = true;
+					} else if (writeIndex == 1) {
+					}
+
+					return true;
+				}
+			}
+			return false;
+		}
+
+		public void replace(int tag, int index, int time) {
+			if (replaceIndex == 0) {//LRU
+				int addr = 0;
+				for (int i = 1; i < associativity; i++) {
+					if (cache[index][addr].lasttime < cache[index][i].lasttime) {
+						addr = i;
+
+					}
+				}
+				load(tag, index, addr, time);
+			} else if (replaceIndex == 1) {//FIFO
+				int addr = 0;
+				for (int i = 1; i < associativity; i++) {
+					if (cache[index][addr].firsttime < cache[index][i].firsttime) {
+						addr = i;
+					}
+				}
+				load(tag, index, addr, time);
+			} else if (replaceIndex == 2) {//random
+				Random rand = new Random();
+				int addr = rand.nextInt(associativity);
+				load(tag, index, addr, time);
+			}
+		}
+
+		public void load(int tag, int index, int addr, int time) {
+			if (cache[index][addr].dirty == true) {
+
+			}
+			cache[index][addr].firsttime = time;
+			cache[index][addr].tag = tag;
+			cache[index][addr].lasttime = 0;
+			cache[index][addr].dirty = false;
+			cache[index][addr].valid = true;
+		}
+
+	}
+
+	private class Instr {
+		protected int type;
+		protected int tag, index, offset, blockaddr;
+		protected String address;
+
+		public Instr(int type, String address) {
+			this.type = type;
+			this.address = address;
+			String s = this.transfer2radix();
+			if (CacheMod == 0) {
+				this.blockaddr = Integer.parseInt(s, 0, Instr_len - ucache.offsetlen, 2);
+				this.tag = Integer.parseInt(s, 0, Instr_len - ucache.offsetlen - ucache.indexlen, 2);
+				this.index = Integer.parseInt(s, Instr_len - ucache.offsetlen - ucache.indexlen,
+						Instr_len - ucache.offsetlen, 2);
+				this.offset = Integer.parseInt(s, Instr_len - ucache.offsetlen, Instr_len, 2);
+			}
+			if (CacheMod == 1) {
+				if (type == 0 || type == 1) {
+					this.tag = Integer.parseInt(s, 0, Instr_len - dcache.offsetlen - dcache.indexlen, 2);
+					this.index = Integer.parseInt(s, Instr_len - dcache.offsetlen - dcache.indexlen,
+							Instr_len - dcache.offsetlen, 2);
+					this.offset = Integer.parseInt(s, Instr_len - dcache.offsetlen, Instr_len, 2);
+				} else if (type == 2) {
+					this.tag = Integer.parseInt(s, 0, Instr_len - icache.offsetlen - icache.indexlen, 2);
+					this.index = Integer.parseInt(s, Instr_len - icache.offsetlen - icache.indexlen,
+							Instr_len - icache.offsetlen, 2);
+					this.offset = Integer.parseInt(s, Instr_len - icache.offsetlen, Instr_len, 2);
+				}
+			}
+
+		}
+
+		private String transfer2radix() {
+
+			return String.format("%32s", Integer.toBinaryString(Integer.parseInt(this.address, 16))).replace(' ', '0');
+
+		}
+	}
 
 	/*
 	 * 构造函数，绘制模拟器面板
@@ -101,6 +264,18 @@ public class CCacheSim extends JFrame implements ActionListener {
 	 * 将指令和数据流从文件中读入
 	 */
 	public void readFile() {
+		try {
+			Scanner scan = new Scanner(file);
+			while (scan.hasNextLine()) {
+				String[] temp = scan.nextLine().split(" ");
+				instr_Set[instrNum] = new Instr(Integer.parseInt(temp[0].trim()), temp[1].trim());
+				instrNum++;
+			}
+			scan.close();
+		} catch (Exception e) {
+			System.out.println("Got a Exception：" + e.getMessage());
+			e.printStackTrace();
+		}
 
 	}
 
@@ -115,6 +290,9 @@ public class CCacheSim extends JFrame implements ActionListener {
 	 * 模拟执行到底
 	 */
 	public void simExecAll() {
+		for (int i = 0; i < instrNum; i++) {
+			simExecStep();
+		}
 
 	}
 
@@ -133,7 +311,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			dcsLabel.setEnabled(false);
 			dcsBox.setEnabled(false);
 
-		} else {
+		} else if (CacheMod == 1) {
 			separatecacheButton.setSelected(true);
 			icsBox.setEnabled(true);
 			icsLabel.setEnabled(true);
@@ -142,6 +320,9 @@ public class CCacheSim extends JFrame implements ActionListener {
 			unifiedcacheButton.setSelected(false);
 			csBox.setEnabled(false);
 			csLabel.setEnabled(false);
+		} else {
+			System.out.println("Something error happened in CacheMod:" + CacheMod);
+			System.exit(-1);
 		}
 	}
 
@@ -339,26 +520,31 @@ public class CCacheSim extends JFrame implements ActionListener {
 		//模拟结果展示区域
 		rightLabel = new JLabel("模拟结果");
 		rightLabel.setPreferredSize(new Dimension(500, 40));
-		results = new JLabel[4];
+		results = new JLabel[4][3];
+		rData =new JLabel[4][3];
 		for (int i = 0; i < 4; i++) {
-			results[i] = new JLabel("");
-			results[i].setPreferredSize(new Dimension(500, 40));
+			for(int j=0;j<3;j++){
+				results[i][j] = new JLabel(rightTags[i][j]);
+				results[i][j].setPreferredSize(new Dimension(70, 40));
+			}
 		}
-
-		stepLabel1 = new JLabel();
-		stepLabel1.setVisible(false);
-		stepLabel1.setPreferredSize(new Dimension(500, 40));
-		stepLabel2 = new JLabel();
-		stepLabel2.setVisible(false);
-		stepLabel2.setPreferredSize(new Dimension(500, 40));
+		for (int i = 0; i < 4; i++) {
+			for(int j=0;j<3;j++){
+				rData[i][j] = new JLabel(rightData[i][j]);
+				rData[i][j].setPreferredSize(new Dimension(70, 40));
+			}
+		}
 
 		panelRight.add(rightLabel);
 		for (int i = 0; i < 4; i++) {
-			panelRight.add(results[i]);
+			for(int j=0;j<3;j++){
+				panelRight.add(results[i][j]);
+				panelRight.add(rData[i][j]);
+			}
+
 		}
 
-		panelRight.add(stepLabel1);
-		panelRight.add(stepLabel2);
+
 
 		//*****************************底部面板绘制*****************************************//
 
@@ -370,6 +556,22 @@ public class CCacheSim extends JFrame implements ActionListener {
 		execAllBtn = new JButton("执行到底");
 		execAllBtn.setLocation(300, 30);
 		execAllBtn.addActionListener(this);
+		execResetBtn =new JButton("RESET");
+		execResetBtn.setLocation(50,30);
+		execResetBtn.addActionListener(new ActionListener(){
+		
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for (int i = 0; i < 4; i++) {
+					for(int j=0;j<3;j++){
+						panelRight.add(results[i][j]);
+						panelRight.add(rData[i][j]);
+					}
+		
+				}
+				
+			}
+		})
 
 		panelBottom.add(bottomLabel);
 		panelBottom.add(execStepBtn);

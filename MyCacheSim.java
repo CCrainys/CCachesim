@@ -68,9 +68,18 @@ public class MyCacheSim extends JFrame implements ActionListener {
 
 	private int cacheType = 0, mcacheType = 0;
 
+
+	/*
+		instruction property
+	*/
+	private Instruction instructions[];
+	private static final int INSTRUCTION_MAX_SIZE = 100000;
+	private int isize;
+	private int ip;
 	/*
 		instruction class
 	*/
+
 	private class Instruction {
 		int opt;
 		int tag;
@@ -180,13 +189,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 
 	}
 
-	/*
-		instruction property
-	*/
-	private Instruction instructions[];
-	private final int INSTRUCTION_MAX_SIZE = 100000;
-	private int isize;
-	private int ip;
+
 
 	private class CacheBlock {
 		int tag;
@@ -291,7 +294,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			if (mreplaceIndex == 0) {//LRU
 				int lruBlock = 0;
 				for (int i = 1; i < blockNumInAGroup; i++) {
-					if (cache[index][lruBlock].count > cache[index][i].count) {
+					if (cache[index][lruBlock].count < cache[index][i].count) {
 						lruBlock = i;
 					}
 				}

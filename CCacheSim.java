@@ -163,7 +163,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			} else if (replaceIndex == 1) {//FIFO
 				int addr = 0;
 				for (int i = 1; i < associativity; i++) {
-					if (cache[index][addr].firsttime < cache[index][i].firsttime) {
+					if (cache[index][addr].firsttime > cache[index][i].firsttime) {
 						addr = i;
 					}
 				}
@@ -181,7 +181,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			}
 			cache[index][addr].firsttime = time;
 			cache[index][addr].tag = tag;
-			cache[index][addr].lasttime = 0;
+			cache[index][addr].lasttime = time;
 			cache[index][addr].dirty = false;
 			cache[index][addr].valid = true;
 		}
@@ -315,8 +315,9 @@ public class CCacheSim extends JFrame implements ActionListener {
 			ip=0;
 			//System.out.println("-2");
 			while (scan.hasNextLine()) {
-				String[] temp = scan.nextLine().split(" ");
-
+				String[] temp = scan.nextLine().split("\\s+");
+				if(instrNum==0){
+				System.out.println(temp[0]+"**"+temp[1]);}
 				instr_Set[instrNum] = new Instr(Integer.parseInt(temp[0].trim()), temp[1].trim());
 				if(instrNum==0){
 					System.out.println(temp[0].trim()+"**"+temp[1].trim());

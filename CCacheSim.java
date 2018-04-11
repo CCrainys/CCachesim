@@ -17,12 +17,15 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.border.EtchedBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
+import javafx.scene.CacheHint;
+
 import java.util.Random;
 
 public class CCacheSim extends JFrame implements ActionListener {
 
 	private JPanel panelTop, panelLeft, panelRight, panelBottom;
-	private JButton execStepBtn, execAllBtn, fileBotton;
+	private JButton execStepBtn, execAllBtn, fileBotton,execResetBtn;
 	private JComboBox<String> csBox, icsBox, dcsBox, bsBox, wayBox, replaceBox, prefetchBox, writeBox, allocBox;
 	private JFileChooser fileChoose;
 
@@ -64,6 +67,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 	private int instrNum = 0;
 	private int ip = 0;
 	private static final int Instr_len = 32;
+	private final int MAXN=1000010;
 	private Instr instr_Set[];
 	private Cache ucache, icache, dcache;
 
@@ -101,7 +105,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			this.cachesize = cachesize;
 			this.blocksize = blocksize;
 			blockNum = cachesize / blocksize;
-			offsetlen = log(blockNum, 2);
+			offsetlen = log(blocksize, 2);
 			associativity = (int) Math.pow(2, wayIndex);
 			groupNum = blockNum / associativity;
 			indexlen = log(groupNum, 2);
@@ -147,7 +151,10 @@ public class CCacheSim extends JFrame implements ActionListener {
 			if (replaceIndex == 0) {//LRU
 				int addr = 0;
 				for (int i = 1; i < associativity; i++) {
-					if (cache[index][addr].lasttime < cache[index][i].lasttime) {
+					//if(cache[index][i].valid==false){
+					//	continue;
+					//}
+					if (cache[index][addr].lasttime > cache[index][i].lasttime) {
 						addr = i;
 
 					}
@@ -170,7 +177,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 
 		public void load(int tag, int index, int addr, int time) {
 			if (cache[index][addr].dirty == true) {
-
+				memoryWriteTime++;
 			}
 			cache[index][addr].firsttime = time;
 			cache[index][addr].tag = tag;
@@ -213,10 +220,16 @@ public class CCacheSim extends JFrame implements ActionListener {
 
 		}
 
+
+
 		private String transfer2radix() {
 
 			return String.format("%32s", Integer.toBinaryString(Integer.parseInt(this.address, 16))).replace(' ', '0');
 
+		}
+
+		public String description() {
+			return " = type" + type + ", tag = " + tag + ", index = " + index + ", offset = " + offset;
 		}
 	}
 
@@ -225,6 +238,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 	 */
 	public CCacheSim() {
 		super("Cache Simulator");
+		ip=0;
 		fileChoose = new JFileChooser();
 		FileNameExtensionFilter filter = new FileNameExtensionFilter("din file", "din", "DIN");
 		fileChoose.setFileFilter(filter);
@@ -241,16 +255,20 @@ public class CCacheSim extends JFrame implements ActionListener {
 			simExecAll();
 		}
 		if (e.getSource() == execStepBtn) {
-			simExecStep();
+			simExecStep(true);
 		}
 		if (e.getSource() == fileBotton) {
 			int fileOver = fileChoose.showOpenDialog(null);
 			if (fileOver == 0) {
 				String path = fileChoose.getSelectedFile().getAbsolutePath();
 				fileAddrBtn.setText(path);
+				System.out.println(path);
 				file = new File(path);
+				
+				initCache();				
 				readFile();
-				initCache();
+				//System.out.println("-1");
+				
 			}
 		}
 	}
@@ -268,6 +286,22 @@ public class CCacheSim extends JFrame implements ActionListener {
 		writeDataMissTime = 0;
 
 		memoryWriteTime = 0;
+		if (CacheMod == 0) {
+			int cssize=(int) Math.pow(4, csIndex);
+			int bcssize=(int)Math.pow(2, bsIndex);
+			ucache = new Cache(2 * 1024 * cssize, 16 *bcssize);
+			icache = null;
+			dcache = null;
+
+
+		} else if (CacheMod == 1) {
+			int icssize=(int) Math.pow(4, icsIndex);
+			int dcssize=(int) Math.pow(4, dcsIndex);
+			int bcssize=(int)Math.pow(2, bsIndex);
+			ucache = null;
+			icache = new Cache(1 * 1024 * icssize, 16 * bcssize);
+			dcache = new Cache(1 * 1024 * dcssize, 16 *bcssize);
+		}
 	}
 
 	/*
@@ -276,10 +310,20 @@ public class CCacheSim extends JFrame implements ActionListener {
 	public void readFile() {
 		try {
 			Scanner scan = new Scanner(file);
+			instr_Set = new Instr[MAXN];
+			instrNum=0;
+			ip=0;
+			//System.out.println("-2");
 			while (scan.hasNextLine()) {
 				String[] temp = scan.nextLine().split(" ");
+
 				instr_Set[instrNum] = new Instr(Integer.parseInt(temp[0].trim()), temp[1].trim());
+				if(instrNum==0){
+					System.out.println(temp[0].trim()+"**"+temp[1].trim());
+					System.out.println(instr_Set[instrNum].description());
+				}
 				instrNum++;
+
 			}
 			scan.close();
 		} catch (Exception e) {
@@ -298,7 +342,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			int index = instr_Set[ip].index;
 			int tag = instr_Set[ip].tag;
 	
-			//System.out.println(instr_Set[ip].description());
+			System.out.println(instr_Set[ip].description());
 	
 			boolean isHit = false;
 			if (CacheMod == 0) {
@@ -331,7 +375,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 					}
 	
 				} else if (type == 2) {// read instruction 
-					isHit = ucache.read(tag, index, inblockAddr);
+					isHit = ucache.read(tag, index, ip+1);
 					if (isHit) {
 						readInstHitTime++;
 					} else {
@@ -343,10 +387,10 @@ public class CCacheSim extends JFrame implements ActionListener {
 						/*
 							Now pretend to load the data in block into CPU
 						*/
-						if (refetchIndex == 0) {// do not prefetch
+						if (prefetchIndex == 0) {// do not prefetch
 							//doing nothing
 						} else if (prefetchIndex == 1) {// prefetch if instruction missed!
-							ucache.prefetch(instr_Set[ip].blockAddr + 1);
+							//ucache.prefetch(instr_Set[ip].blockAddr + 1);
 						}
 					}
 				}
@@ -383,14 +427,14 @@ public class CCacheSim extends JFrame implements ActionListener {
 						icache.replace(tag, index,ip+1);
 						if (prefetchIndex == 0) {
 						} else if (prefetchIndex == 1) {
-							icache.prefetch(instr_Set[ip].blockAddr + 1);
+							//icache.prefetch(instr_Set[ip].blockAddr + 1);
 						}
 					}
 				}
 			}
 	
-			if (isshow || ip == isize - 1) {
-				loadresult(instr_Set[ip], isHit);
+			if (isshow || ip == instrNum - 1) {
+				loadresult();
 			}
 			ip++;
 		}
@@ -398,37 +442,37 @@ public class CCacheSim extends JFrame implements ActionListener {
 
 	}
 
-	private void statisticUIUpdate(Instruction inst, boolean isHit) {
+	private void loadresult() {
 
 		int totalMissTime = readInstMissTime + readDataMissTime + writeDataMissTime;
 		int totalVisitTime = totalMissTime + readInstHitTime + readDataHitTime + writeDataHitTime;
 
-		resultDataLabel[0][0].setText(totalVisitTime + "");
-		resultDataLabel[0][1].setText(totalMissTime + "");
+		rData[0][0].setText(totalVisitTime + "");
+		rData[0][1].setText(totalMissTime + "");
 		if (totalVisitTime > 0) {
 			double missRate = ((double) totalMissTime / (double) totalVisitTime) * 100;
-			resultDataLabel[0][2].setText(String.format("%.2f", missRate) + "%");
+			rData[0][2].setText(String.format("%.2f", missRate) + "%");
 		}
 
-		resultDataLabel[1][0].setText((readInstHitTime + readInstMissTime) + "");
-		resultDataLabel[1][1].setText(readInstMissTime + "");
+		rData[1][0].setText((readInstHitTime + readInstMissTime) + "");
+		rData[1][1].setText(readInstMissTime + "");
 		if (readInstMissTime + readInstHitTime > 0) {
 			double missRate = ((double) readInstMissTime / (double) (readInstMissTime + readInstHitTime)) * 100;
-			resultDataLabel[1][2].setText(String.format("%.2f", missRate) + "%");
+			rData[1][2].setText(String.format("%.2f", missRate) + "%");
 		}
 
-		resultDataLabel[2][0].setText((readDataHitTime + readDataMissTime) + "");
-		resultDataLabel[2][1].setText(readDataMissTime + "");
+		rData[2][0].setText((readDataHitTime + readDataMissTime) + "");
+		rData[2][1].setText(readDataMissTime + "");
 		if (readDataMissTime + readDataHitTime > 0) {
 			double missRate = ((double) readDataMissTime / (double) (readDataMissTime + readDataHitTime)) * 100;
-			resultDataLabel[2][2].setText(String.format("%.2f", missRate) + "%");
+			rData[2][2].setText(String.format("%.2f", missRate) + "%");
 		}
 
-		resultDataLabel[3][0].setText((writeDataHitTime + writeDataMissTime) + "");
-		resultDataLabel[3][1].setText(writeDataMissTime + "");
+		rData[3][0].setText((writeDataHitTime + writeDataMissTime) + "");
+		rData[3][1].setText(writeDataMissTime + "");
 		if (writeDataMissTime + writeDataHitTime > 0) {
 			double missRate = ((double) writeDataMissTime / (double) (writeDataMissTime + writeDataHitTime)) * 100;
-			resultDataLabel[3][2].setText(String.format("%.2f", missRate) + "%");
+			rData[3][2].setText(String.format("%.2f", missRate) + "%");
 		}
 
 	}
@@ -439,7 +483,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 	 */
 	public void simExecAll() {
 		for (int i = 0; i < instrNum; i++) {
-			simExecStep();
+			simExecStep(false);
 		}
 
 	}
@@ -711,17 +755,19 @@ public class CCacheSim extends JFrame implements ActionListener {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				for (int i = 0; i < 4; i++) {
-					for(int j=0;j<3;j++){
-						panelRight.add(results[i][j]);
-						panelRight.add(rData[i][j]);
+					for(int j=0;j<2;j++){
+						rData[i][j].setText("0");
 					}
-		
+					rData[i][2].setText("0.00%");
 				}
-				
+				ip=0;
+				fileAddrBtn.setText("");
+				initCache();
 			}
-		})
-
+		});
+		
 		panelBottom.add(bottomLabel);
+		panelBottom.add(execResetBtn);
 		panelBottom.add(execStepBtn);
 		panelBottom.add(execAllBtn);
 

@@ -49,7 +49,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 	//private final  String typename[] = { "读数据", "写数据", "读指令" };
 	//private String hitname[] = {"不命中", "命中" };
 
-	private final String resultTags[][] = { { "访问总次数:", "不命中次数:", "不命中率:" }, { "读指令次数:", "不命中次数:", "不命中率:" },
+	private final String resultTags[][] = {  { "访问总次数:", "不命中次数:", "不命中率:" }, { "读指令次数:", "不命中次数:", "不命中率:" },
 			{ "读数据次数:", "不命中次数:", "不命中率:" }, { "写数据次数:", "不命中次数:", "不命中率:" } };
 
 	/*
@@ -73,7 +73,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 		instruction property
 	*/
 	private Instruction instructions[];
-	private static final int INSTRUCTION_MAX_SIZE = 100000;
+	private static final int INSTRUCTION_MAX_SIZE = 1000010;
 	private int isize;
 	private int ip;
 	/*
@@ -294,7 +294,7 @@ public class MyCacheSim extends JFrame implements ActionListener {
 			if (mreplaceIndex == 0) {//LRU
 				int lruBlock = 0;
 				for (int i = 1; i < blockNumInAGroup; i++) {
-					if (cache[index][lruBlock].count < cache[index][i].count) {
+					if (cache[index][lruBlock].count > cache[index][i].count) {
 						lruBlock = i;
 					}
 				}
@@ -450,6 +450,10 @@ public class MyCacheSim extends JFrame implements ActionListener {
 				String line = s.nextLine();
 				String[] items = line.split(" ");
 				instructions[isize] = new Instruction(Integer.parseInt(items[0].trim()), items[1].trim());
+				if(isize==0){
+					System.out.println(items[0].trim()+"**"+items[1].trim());
+					System.out.println(instructions[isize].description());
+				}
 				isize++;
 			}
 		} catch (Exception e) {

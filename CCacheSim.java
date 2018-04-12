@@ -177,14 +177,15 @@ public class CCacheSim extends JFrame implements ActionListener {
 		}
 
 		public Boolean prefetch_read(int nextBlockAddr, float time){
-			int tag = nextBlockAddr / (int) Math.pow(2, indexlen + offsetlen);
-			int index = nextBlockAddr / (int) Math.pow(2, offsetlen) % (int) Math.pow(2, indexlen);
+			int tag = nextBlockAddr / (int) Math.pow(2, indexlen);
+			int index = nextBlockAddr  % (int) Math.pow(2, indexlen);
+			//System.out.println("tag:"+tag+",index:"+index); 
 			return read(tag,index,time);
 		}
 
 		public void prefetch_write(int nextBlockAddr, float time){
-			int tag = nextBlockAddr / (int) Math.pow(2, indexlen + offsetlen);
-			int index = nextBlockAddr / (int) Math.pow(2, offsetlen) % (int) Math.pow(2, indexlen);
+			int tag = nextBlockAddr / (int) Math.pow(2, indexlen);
+			int index = nextBlockAddr  % (int) Math.pow(2, indexlen);
 			replace(tag,index,time);
 		}
 
@@ -219,11 +220,13 @@ public class CCacheSim extends JFrame implements ActionListener {
 			}
 			if (CacheMod == 1) {
 				if (type == 0 || type == 1) {
+					this.blockaddr = Integer.parseInt(s, 0, Instr_len - dcache.offsetlen, 2);
 					this.tag = Integer.parseInt(s, 0, Instr_len - dcache.offsetlen - dcache.indexlen, 2);
 					this.index = Integer.parseInt(s, Instr_len - dcache.offsetlen - dcache.indexlen,
 							Instr_len - dcache.offsetlen, 2);
 					this.offset = Integer.parseInt(s, Instr_len - dcache.offsetlen, Instr_len, 2);
 				} else if (type == 2) {
+					this.blockaddr = Integer.parseInt(s, 0, Instr_len - icache.offsetlen, 2);
 					this.tag = Integer.parseInt(s, 0, Instr_len - icache.offsetlen - icache.indexlen, 2);
 					this.index = Integer.parseInt(s, Instr_len - icache.offsetlen - icache.indexlen,
 							Instr_len - icache.offsetlen, 2);
@@ -242,7 +245,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 		}
 
 		public String description() {
-			return " = type" + type + ", tag = " + tag + ", index = " + index + ", offset = " + offset;
+			return " type=" + type + ", tag = " + tag + ", index = " + index + ", offset = " + offset;
 		}
 	}
 
@@ -351,7 +354,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			int tag = instr_Set[ip].tag;
 	
 			//System.out.println(instr_Set[ip].description());
-	
+			
 			boolean isHit = false;
 			if (CacheMod == 0) {
 				/*	
@@ -370,6 +373,8 @@ public class CCacheSim extends JFrame implements ActionListener {
 							if(!ucache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
 								readDataMissTime++;
 								ucache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}else{
+								readDataHitTime++;
 							}
 						}
 					}
@@ -409,6 +414,8 @@ public class CCacheSim extends JFrame implements ActionListener {
 							if(!ucache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
 								readInstMissTime++;
 								ucache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}else{
+								readInstHitTime++;
 							}
 						}
 					}
@@ -428,6 +435,8 @@ public class CCacheSim extends JFrame implements ActionListener {
 							if(!dcache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
 								readDataMissTime++;
 								dcache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}else{
+								readDataHitTime++;
 							}
 						}
 
@@ -447,6 +456,10 @@ public class CCacheSim extends JFrame implements ActionListener {
 					}
 	
 				} else if (type == 2) {
+//int t=instr_Set[ip].blockaddr/icache.indexlen;
+					//int ij=instr_Set[ip].blockaddr%icache.indexlen;
+					//System.out.println("tag0:"+instr_Set[ip].tag+"index0:"+instr_Set[ip].index);
+					//System.out.println("tag1:"+t+"index1:"+ij);
 					isHit = icache.read(tag, index, (float)(ip+1));
 					if (isHit) {
 						readInstHitTime++;
@@ -459,6 +472,8 @@ public class CCacheSim extends JFrame implements ActionListener {
 							if(!icache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
 								readInstMissTime++;
 								icache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}else{
+								readInstHitTime++;
 							}
 						}
 					}

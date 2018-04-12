@@ -18,6 +18,7 @@ import javax.swing.JRadioButton;
 import javax.swing.border.EtchedBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+
 import javafx.scene.CacheHint;
 
 import java.util.Random;
@@ -62,7 +63,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 	private int csIndex, icsIndex, dcsIndex, bsIndex, wayIndex, replaceIndex, prefetchIndex, writeIndex, allocIndex;
 
 	//其它变量定义
-	//...
+	//..
 	private int CacheMod = 0;
 	private int instrNum = 0;
 	private int ip = 0;
@@ -74,8 +75,8 @@ public class CCacheSim extends JFrame implements ActionListener {
 	private class CacheBlock {
 		int tag;
 		boolean dirty;
-		int firsttime;
-		int lasttime;
+		float firsttime;
+		float lasttime;
 		boolean valid;
 		int count;
 
@@ -121,7 +122,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			return (int) (Math.log(x) / Math.log(base));
 		}
 
-		public boolean read(int tag, int index, int time) {
+		public boolean read(int tag, int index, float time) {
 			for (int i = 0; i < associativity; i++) {
 				if (cache[index][i].valid == true && cache[index][i].tag == tag) {
 					cache[index][i].lasttime = time;
@@ -131,7 +132,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			return false;
 		}
 
-		public boolean write(int tag, int index, int time) {
+		public boolean write(int tag, int index, float time) {
 			for (int i = 0; i < associativity; i++) {
 				if (cache[index][i].valid == true && cache[index][i].tag == tag) {//hit					
 
@@ -147,7 +148,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			return false;
 		}
 
-		public void replace(int tag, int index, int time) {
+		public void replace(int tag, int index, float time) {
 			if (replaceIndex == 0) {//LRU
 				int addr = 0;
 				for (int i = 1; i < associativity; i++) {
@@ -175,7 +176,19 @@ public class CCacheSim extends JFrame implements ActionListener {
 			}
 		}
 
-		public void load(int tag, int index, int addr, int time) {
+		public Boolean prefetch_read(int nextBlockAddr, float time){
+			int tag = nextBlockAddr / (int) Math.pow(2, indexlen + offsetlen);
+			int index = nextBlockAddr / (int) Math.pow(2, offsetlen) % (int) Math.pow(2, indexlen);
+			return read(tag,index,time);
+		}
+
+		public void prefetch_write(int nextBlockAddr, float time){
+			int tag = nextBlockAddr / (int) Math.pow(2, indexlen + offsetlen);
+			int index = nextBlockAddr / (int) Math.pow(2, offsetlen) % (int) Math.pow(2, indexlen);
+			replace(tag,index,time);
+		}
+
+		public void load(int tag, int index, int addr, float time) {
 			if (cache[index][addr].dirty == true) {
 				memoryWriteTime++;
 			}
@@ -351,24 +364,32 @@ public class CCacheSim extends JFrame implements ActionListener {
 					unified cache
 				*/
 				if (type == 0) {// read data
-					isHit = ucache.read(tag, index, ip+1);
+					isHit = ucache.read(tag, index, (float)(ip+1));
 					if (isHit) {
 						readDataHitTime++;
 					} else {
 						readDataMissTime++;
-						ucache.replace(tag, index,ip+1);
+						ucache.replace(tag, index,(float)(ip+1));
+						if (prefetchIndex == 0) {// do not prefetch
+							//doing nothing
+						} else if (prefetchIndex == 1) {// prefetch if instruction missed!
+							if(!ucache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
+								readDataMissTime++;
+								ucache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}
+						}
 					}
 				} else if (type == 1) {
-					isHit = ucache.write(tag, index, ip+1);
+					isHit = ucache.write(tag, index, (float)(ip+1));
 					if (isHit) {
 						writeDataHitTime++;
 					} else {
 						writeDataMissTime++;
 						if (allocIndex == 0) {
 
-							ucache.replace(tag, index,ip+1);
+							ucache.replace(tag, index,(float)(ip+1));
 
-							ucache.write(tag, index, ip+1);
+							ucache.write(tag, index, (float)(ip+1));
 						} else if (allocIndex == 1) {
 
 							memoryWriteTime++;
@@ -376,7 +397,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 					}
 	
 				} else if (type == 2) {// read instruction 
-					isHit = ucache.read(tag, index, ip+1);
+					isHit = ucache.read(tag, index, (float)(ip+1));
 					if (isHit) {
 						readInstHitTime++;
 					} else {
@@ -384,51 +405,67 @@ public class CCacheSim extends JFrame implements ActionListener {
 						/*
 							Now pretend to find the block in memory
 						*/
-						ucache.replace(tag, index,ip+1);
+						ucache.replace(tag, index,(float)(ip+1));
 						/*
 							Now pretend to load the data in block into CPU
 						*/
 						if (prefetchIndex == 0) {// do not prefetch
 							//doing nothing
 						} else if (prefetchIndex == 1) {// prefetch if instruction missed!
-							//ucache.prefetch(instr_Set[ip].blockAddr + 1);
+							if(!ucache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
+								readInstMissTime++;
+								ucache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}
 						}
 					}
 				}
 	
 			} else if (CacheMod == 1) {
 				if (type == 0) {// read data
-					isHit = dcache.read(tag, index, ip+1);
+					isHit = dcache.read(tag, index, (float)(ip+1));
 					if (isHit) {
 						readDataHitTime++;
 					} else {
 						readDataMissTime++;
-						dcache.replace(tag, index,ip+1);
+						dcache.replace(tag, index,(float)(ip+1));
+						if (prefetchIndex == 0) {// do not prefetch
+							//doing nothing
+						} else if (prefetchIndex == 1) {// prefetch if instruction missed!
+							if(!dcache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
+								readDataMissTime++;
+								dcache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}
+						}
+
 					}
 				} else if (type == 1) {// write data
-					isHit = dcache.write(tag, index,ip+1);
+					isHit = dcache.write(tag, index,(float)(ip+1));
 					if (isHit) {
 						writeDataHitTime++;
 					} else {
 						writeDataMissTime++;
 						if (allocIndex == 0) {
-							dcache.replace(tag, index,ip+1);
-							dcache.write(tag, index,ip+1);
+							dcache.replace(tag, index,(float)(ip+1));
+							dcache.write(tag, index,(float)(ip+1));
 						} else if (allocIndex == 1) {
 							memoryWriteTime++;
 						}
 					}
 	
 				} else if (type == 2) {
-					isHit = icache.read(tag, index, ip+1);
+					isHit = icache.read(tag, index, (float)(ip+1));
 					if (isHit) {
 						readInstHitTime++;
 					} else {
 						readInstMissTime++;
-						icache.replace(tag, index,ip+1);
-						if (prefetchIndex == 0) {
-						} else if (prefetchIndex == 1) {
-							//icache.prefetch(instr_Set[ip].blockAddr + 1);
+						icache.replace(tag, index,(float)(ip+1));
+						if (prefetchIndex == 0) {// do not prefetch
+							//doing nothing
+						} else if (prefetchIndex == 1) {// prefetch if instruction missed!
+							if(!icache.prefetch_read(instr_Set[ip].blockaddr + 1,(float)(ip+1.5))){
+								readInstMissTime++;
+								icache.prefetch_write(instr_Set[ip].blockaddr + 1,(float)(ip+1.5));
+							}
 						}
 					}
 				}

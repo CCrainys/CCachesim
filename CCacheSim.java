@@ -335,9 +335,11 @@ public class CCacheSim extends JFrame implements ActionListener {
 				instr_Set[instrNum] = new Instr(Integer.parseInt(temp[0].trim()), temp[1].trim());
 				instrNum++;
 
+
 			}
 			scan.close();
 		} catch (Exception e) {
+			System.out.println(instrNum);
 			System.out.println("Got a Exception：" + e.getMessage());
 			e.printStackTrace();
 		}

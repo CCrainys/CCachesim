@@ -329,13 +329,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			//System.out.println("-2");
 			while (scan.hasNextLine()) {
 				String[] temp = scan.nextLine().split("\\s+");
-				if(instrNum==0){
-				System.out.println(temp[0]+"**"+temp[1]);}
 				instr_Set[instrNum] = new Instr(Integer.parseInt(temp[0].trim()), temp[1].trim());
-				if(instrNum==0){
-					System.out.println(temp[0].trim()+"**"+temp[1].trim());
-					System.out.println(instr_Set[instrNum].description());
-				}
 				instrNum++;
 
 			}
@@ -356,7 +350,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 			int index = instr_Set[ip].index;
 			int tag = instr_Set[ip].tag;
 	
-			System.out.println(instr_Set[ip].description());
+			//System.out.println(instr_Set[ip].description());
 	
 			boolean isHit = false;
 			if (CacheMod == 0) {
@@ -816,6 +810,7 @@ public class CCacheSim extends JFrame implements ActionListener {
 		setSize(820, 620);
 		setVisible(true);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setResizable(false);
 	}
 
 }
